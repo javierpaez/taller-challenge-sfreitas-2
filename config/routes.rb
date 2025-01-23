@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
   get 'books/generate_report', to: 'books#generate_report'
   resources :books
+  post 'books/:id/reserve', to: 'books#reserve'
   resources :authors
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

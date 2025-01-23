@@ -1,9 +1,9 @@
 class BooksController < ApplicationController
-  before_action :set_book, only: %i[ show update destroy ]
+  before_action :set_book, only: %i[ show update destroy reserve ]
 
   # GET /books
   def index
-    @books = Book.all.order(rating: :desc, publication_date: :desc)
+    @books = Book.preload(:author).all.order(rating: :desc, publication_date: :desc)
     @books = @books.map do |book|
       { id:book.id, title: book.title, author_name: book.author.name }
     end
@@ -43,7 +43,7 @@ class BooksController < ApplicationController
 
   # Report books
   def generate_report
-    books = Book.all
+    books = Book.preload(author: [:books]).all
     report = []
 
     books.each do |book|
@@ -64,6 +64,21 @@ class BooksController < ApplicationController
     end
 
     render json: { report: report, generated_at: Time.now.to_s }
+  end
+
+  def reserve
+    if @book.status == 'reserved'
+      return render json: { error: 'The book is already reserved' }, status: :unprocessable_entity
+    end
+
+    @book.status = 'reserved'
+    @book.reserved_by = params[:book][:reserved_by]
+
+    if @book.save
+      render json: @book, status: :ok, location: @book
+    else
+      render json: @book.errors, status: :unprocessable_entity
+    end
   end
 
   private

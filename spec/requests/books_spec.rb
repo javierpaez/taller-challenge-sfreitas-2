@@ -50,4 +50,32 @@ RSpec.describe "Books API", type: :request do
         expect(parsed_response['report']).to be_an(Array)
     end
   end
+
+  describe "POST /reserve" do
+    let(:book) { Book.create!(title: "Book 1", author_id: author.id, publication_date: 3.days.ago, rating: 3) }
+    before { post "/books/#{book.id}/reserve", params: { book: { reserved_by: 'email@email.com' } } }
+
+    it 'reserves the book correctly' do
+      parsed_response = JSON.parse(response.body)
+
+      aggregate_failures do
+        expect(response.status).to eq(200)
+        expect(parsed_response['status']).to eq('reserved')
+        expect(parsed_response['reserved_by']).to eq('email@email.com')
+      end
+    end
+
+    context 'when the book its already reserved' do
+      let(:book) { Book.create!(title: "Book 1", author_id: author.id, publication_date: 3.days.ago, rating: 3, status: 'reserved', reserved_by: 'something') }
+
+      it 'returns an error' do
+        parsed_response = JSON.parse(response.body)
+
+        aggregate_failures do
+          expect(response.status).to eq(422)
+          expect(parsed_response['error']).to eq('The book is already reserved')
+        end
+      end
+    end
+  end
 end
